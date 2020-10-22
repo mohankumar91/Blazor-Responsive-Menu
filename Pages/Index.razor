@@ -1,0 +1,319 @@
+﻿@page "/"
+
+@using Syncfusion.Blazor.Navigations;
+@inject IJSRuntime JSRuntime;
+
+<div id="container">
+    <SfMenu @ref="menuObj" Items="@menuItems" HamburgerMode="@hamburgerMode" ShowItemOnClick="@hamburgerMode">
+        <MenuFieldSettings Text="Content" Children="SubItems" IconCss="Icon" Disabled="Disable"></MenuFieldSettings>
+        <MenuTemplates TValue="ItemModel">
+            <Template>
+                @if (context.About == null)
+                {
+                    @if (context.Icon != null)
+                    {
+                        <span class="e-menu-icon @context.Icon"></span>
+                    }
+                    <span class="e-text">@context.Content</span>
+                    if (context.ShortCut != null)
+                    {
+                        <span class="e-shortcut e-caret">@context.ShortCut</span>
+                    }
+                }
+                else
+                {
+                    <div class="e-card">
+                        @if (!hamburgerMode)
+                        {
+                            <div class="e-card-header">
+                                <div class="e-card-header-caption">
+                                    <div class="e-card-header-title">About Us</div>
+                                </div>
+                            </div>
+                        }
+                        <div class="e-card-content">
+                            @context.About
+                        </div>
+                        <div class="e-card-actions">
+                            <input type="button" class="e-btn e-outline" style="pointer-events: auto;" value="Read More" />
+                        </div>
+                    </div>
+                }
+            </Template>
+        </MenuTemplates>
+        <MenuEvents TValue="ItemModel" ItemSelected="@SelectHandler" Created="Created"></MenuEvents>
+    </SfMenu>
+</div>
+
+@code {
+    private SfMenu<ItemModel> menuObj;
+    private bool hamburgerMode;
+    private static Action<double> action;
+
+    private async Task Created()
+    {
+        action = ResizeHandler;
+        var width = await JSRuntime.InvokeAsync<double?>("registerResizeCallback", null);
+        ResizeHandler((double)width);
+    }
+    private void SelectHandler(MenuEventArgs<ItemModel> e)
+    {
+        if (e.Item.Icon != null)
+        {
+            if (e.Item.Icon == "sf-icon-Selection")
+                e.Item.Icon = null;
+        }
+        else
+        {
+            var itemsText = new string[] { "Show Rulers", "Show Guides", "Show Grid", "Snap To Grid", "Show Toolbar", "Show Stencil", "Show Properties", "Show Layers", "Show Pager" };
+            if (itemsText.Contains(e.Item.Content))
+                e.Item.Icon = "sf-icon-Selection";
+            else
+            {
+                itemsText = new string[] { "Lock", "Unlock", "Group", "Ungroup" };
+                if (itemsText.Contains(e.Item.Content))
+                {
+                    string text = string.Empty;
+                    if (e.Item.Content == "Lock")
+                        text = "Unlock";
+                    else if (e.Item.Content == "Unlock")
+                        text = "Lock";
+                    else if (e.Item.Content == "Group")
+                        text = "Ungroup";
+                    else
+                        text = "Group";
+                    var itemIndexes = menuObj.GetItemIndex(new ItemModel { Content = text });
+                    List<ItemModel> items = menuItems;
+                    for (var i = 0; i < itemIndexes.Count; i++) {
+                        if (i == itemIndexes.Count - 1)
+                        {
+                            items[itemIndexes[i]].Disable = false;
+                        }
+                        items = items[itemIndexes[i]].SubItems;
+                    }
+                    e.Item.Disable = true;
+                }
+            }
+        }
+    }
+
+    [JSInvokable]
+    public static void OnBrowserResize(double width) => action.Invoke(width);
+
+    private void ResizeHandler(double width)
+    {
+        if (width < 600) //Menu will be changed to hamburger mode, when the screen size is less than 600.
+        {
+            if (!hamburgerMode)
+            {
+                hamburgerMode = true;
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            if (hamburgerMode)
+            {
+                hamburgerMode = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private List<ItemModel> menuItems = new List<ItemModel>()
+    {
+        new ItemModel
+        {
+            Content = "File",
+            SubItems = new List<ItemModel>()
+            {
+                new ItemModel { Content = "New", ShortCut = "Ctrl + N" },
+                new ItemModel { Content = "Open", ShortCut = "Ctrl + O" },
+                new ItemModel { Separator = true },
+                new ItemModel { Icon = "sf-icon-Save", Content = "Save", ShortCut = "Ctrl + S" },
+                new ItemModel { Content = "Save As", Id = "save-as" },
+                new ItemModel { Icon = "sf-icon-Export", Content = "Export" },
+                new ItemModel { Icon = "sf-icon-Print", Content = "Print" }
+            }
+        },
+        new ItemModel
+        {
+            Content = "Edit",
+            SubItems = new List<ItemModel>()
+            {
+                new ItemModel { Icon = "sf-icon-Undo", Content = "Undo", ShortCut = "Ctrl + Z" },
+                new ItemModel { Icon = "sf-icon-Redo", Content = "Redo", ShortCut = "Ctrl + Y" },
+                new ItemModel { Separator = true },
+                new ItemModel { Icon = "sf-icon-Cut", Content = "Cut", ShortCut = "Ctrl + X" },
+                new ItemModel { Icon = "sf-icon-Copy", Content = "Copy", ShortCut = "Ctrl + C" },
+                new ItemModel { Icon = "sf-icon-Paste", Content = "Paste", ShortCut = "Ctrl + V" },
+                new ItemModel { Icon = "sf-icon-Delete", Content = "Delete", ShortCut = "Delete" },
+                new ItemModel { Separator = true },
+                new ItemModel { Content = "Duplicate", ShortCut = "Ctrl + D" },
+                new ItemModel { Separator = true },
+                new ItemModel { Content = "Edit Tooltip", Id = "edit-tooltip" },
+                new ItemModel { Separator = true },
+                new ItemModel { Content = "Select All", ShortCut = "Ctrl + A" },
+            }
+        },
+        new ItemModel
+        {
+            Content = "View",
+            SubItems = new List<ItemModel>()
+            {
+                new ItemModel { Icon = "sf-icon-ZoomIn", Content = "Zoom In", ShortCut = "Ctrl + +" },
+                new ItemModel { Icon = "sf-icon-ZoomOut", Content = "Zoom Out", ShortCut = "Ctrl + _" },
+                new ItemModel { Separator = true },
+                new ItemModel { Content = "Fit To Screen", Id = "fit-to-screen" },
+                new ItemModel { Separator = true },
+                new ItemModel { Content = "Show Rulers" },
+                new ItemModel { Icon = "sf-icon-Selection", Content = "Show Guides" },
+                new ItemModel { Icon = "sf-icon-Selection", Content = "Show Grid" },
+                new ItemModel { Separator = true },
+                new ItemModel { Content = "Snap To Grid" }
+            }
+        },
+        new ItemModel
+        {
+            Content = "Arrange",
+            SubItems = new List<ItemModel>()
+            {
+                new ItemModel { Icon = "sf-icon-Sendback", Content = "Send To Back", ShortCut = "Ctrl + Shift + B" },
+                new ItemModel { Icon = "sf-icon-BringFront", Content = "Bring To Front", ShortCut = "Ctrl + Shift + F" },
+                new ItemModel { Separator = true },
+                new ItemModel { Icon = "sf-icon-SendBackward", Content = "Send Backward" },
+                new ItemModel { Icon = "sf-icon-BringForward", Content = "Bring Forward" },
+                new ItemModel { Separator = true },
+                new ItemModel {
+                    Content = "Align Objects",
+                    SubItems = new List<ItemModel>
+                    {
+                        new ItemModel { Content = "Left", Icon = "sf-icon-AlignLeft" },
+                        new ItemModel { Content = "Right", Icon = "sf-icon-AlignRight" },
+                        new ItemModel { Content = "Center", Icon = "sf-icon-AlignHorizontally" },
+                        new ItemModel { Content = "Top", Icon = "sf-icon-AilgnTop"},
+                        new ItemModel { Content = "Bottom", Icon = "sf-icon-AlignBottom" },
+                        new ItemModel { Content = "Middle", Icon = "sf-icon-AlignVertically" }
+                    }
+                },
+                new ItemModel {
+                    Content = "Distribute Objects",
+                    Id = "distribute-objects",
+                    SubItems = new List<ItemModel>
+                    {
+                        new ItemModel { Content = "Horizontally", Icon = "sf-icon-DistributeHorizontal" },
+                        new ItemModel { Content = "Vertically", Icon = "sf-icon-DistributeVertical" }
+                    }
+                },
+                new ItemModel {
+                    Content = "Match Size",
+                    SubItems = new List<ItemModel>
+                    {
+                        new ItemModel { Content = "Both Width and Height" },
+                        new ItemModel { Content = "Width" },
+                        new ItemModel { Content = "Height" }
+                    }
+                },
+                new ItemModel { Separator = true },
+                new ItemModel { Content = "Lock" },
+                new ItemModel { Content = "Unlock", Disable = true },
+                new ItemModel { Separator = true },
+                new ItemModel { Content = "Group", ShortCut = "Ctrl + G" },
+                new ItemModel { Content = "Ungroup", Disable = true, ShortCut = "Ctrl + U" },
+            }
+        },
+        new ItemModel
+        {
+            Content = "Window",
+            SubItems = new List<ItemModel>()
+            {
+                new ItemModel { Icon = "sf-icon-Selection", Content = "Show Toolbar" },
+                new ItemModel { Icon = "sf-icon-Selection", Content = "Show Stencil" },
+                new ItemModel { Icon = "sf-icon-Selection", Content = "Show Properties" },
+                new ItemModel { Content = "Show Layers" },
+                new ItemModel { Icon = "sf-icon-Selection", Content = "Show Pager" }
+            }
+        },
+        new ItemModel
+        {
+            Content = "About Us",
+            SubItems = new List<ItemModel>()
+            {
+                new ItemModel { Id = "about", About = "We are on a mission to provide world-class best software solutions for web, mobile and desktop platforms. Around 900+ applications are desgined and delivered to our customers to make digital & strengthen their businesses." }
+            }
+        },
+        new ItemModel
+        {
+            Content = "Help"
+        }
+    };
+
+    private class ItemModel
+    {
+        public string Content { get; set; }
+        public string Icon { get; set; }
+        public string ShortCut { get; set; }
+        public bool Separator { get; set; }
+        public List<ItemModel> SubItems { get; set; }
+        public bool Disable { get; set; }
+        public string About { get; set; }
+        public string Id { get; set; }
+    }
+}
+
+<style>
+    #container {
+        width: 100%;
+        padding: 20px 10px 0;
+        background-color: #fafafa;
+        line-height: 0;
+    }
+    .e-menu-container.e-menu-popup ul .e-menu-item .e-shortcut.e-caret {
+        opacity: .5;
+    }
+    .e-menu-container.e-menu-popup .e-shortcut.e-caret::before {
+        content: "";
+    }
+    #container .e-menu-container.e-hamburger ul.e-ul .e-menu-item.e-blankicon {
+        padding-left: 28px;
+    }
+    /** About Us popup customization */
+    .e-menu-container ul.e-ul {
+        padding: 0;
+    }
+    .e-menu-container ul.e-ul .e-menu-item .e-card {
+        width: 335px;
+        font-size: inherit;
+        background-color: inherit;
+        border-color: transparent;
+        text-indent: 0
+    }
+    .e-menu-container.e-hamburger ul.e-ul .e-menu-item .e-card {
+        width: 100%;
+    }
+    .e-menu-container ul.e-ul .e-menu-item .e-card .e-card-content {
+        white-space: normal;
+        color: inherit;
+        padding-top: 0;
+        text-align: justify;
+        font-size: inherit;
+    }
+    .e-menu-container.e-hamburger ul.e-ul .e-menu-item .e-card .e-card-content {
+        padding-top: 12px;
+    }
+    .e-menu-container ul.e-ul .e-menu-item#about {
+        height: auto;
+        padding: 0;
+    }
+    .e-menu-container ul.e-ul .e-menu-item#about.e-focused {
+        background-color: transparent;
+        outline-color: transparent;
+        pointer-events: none;
+    }
+    #edit-tooltip .e-text,
+    #save-as .e-text,
+    #fit-to-screen .e-text,
+    #distribute-objects .e-text {
+        margin-right: 16px;
+    }
+</style>
